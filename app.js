@@ -1,7 +1,13 @@
 import express from 'express'
+import * as dotenv from 'dotenv'
+dotenv.config()
 import cors from 'cors'
 const app = express();
 const port = 3000;
+
+import {sequelize} from "./loaders/database.js";
+import './models/index.js'
+import {UserService} from "./services/UserService.js";
 import webAuthService from "./services/WebAuthService.js";
 
 app.use(express.json());
@@ -38,6 +44,18 @@ app.post('/verify-authentication', async (req, res) => {
 });
 
 
-app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
-})
+const startApp = async () => {
+    try {
+        await sequelize.authenticate()
+        console.log('Connection has been established successfully.');
+        await sequelize.sync();
+        const userInstance = new UserService();
+        await userInstance.register('name')
+        app.listen(port, () => {
+            console.log(`Example app listening on port ${port}`)
+        })
+    } catch (error) {
+        console.log("error =>", error);
+    }
+};
+await startApp();
