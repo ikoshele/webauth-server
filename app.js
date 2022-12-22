@@ -9,11 +9,20 @@ import {sequelize} from "./loaders/database.js";
 import './models/index.js'
 import {UserService} from "./services/UserService.js";
 import webAuthService from "./services/WebAuthService.js";
+import {router as indexRoutes} from './routes/index.routes.js'
+import {router as signUpRoutes} from './routes/registration.routes.js'
+import {router as authRoutes} from './routes/auth.routes.js'
+import {errorHandler} from "./errorHandler.js";
+import {authenticateToken} from "./authToken.js";
 
 app.use(express.json());
 app.use(cors());
 
 const webAuthInstance = new webAuthService();
+
+app.use('/', indexRoutes);
+app.use('/', signUpRoutes);
+app.use('/', authRoutes);
 
 app.get('/', (req, res) => {
     res.send('hello world')
@@ -44,13 +53,19 @@ app.post('/verify-authentication', async (req, res) => {
 });
 
 
+app.get('/api/userOrders', authenticateToken, (req, res) => {
+    res.send('success')
+})
+app.use(errorHandler)
+
+
 const startApp = async () => {
     try {
         await sequelize.authenticate()
         console.log('Connection has been established successfully.');
-        await sequelize.sync();
+        await sequelize.sync({force: true});
         const userInstance = new UserService();
-        await userInstance.register('name')
+        //await userInstance.register('name')
         app.listen(port, () => {
             console.log(`Example app listening on port ${port}`)
         })

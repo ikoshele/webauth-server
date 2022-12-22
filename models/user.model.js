@@ -1,7 +1,7 @@
 import {DataTypes} from "sequelize";
 import {sequelize} from "../loaders/database.js";
 
-export const User = sequelize.define('user', {
+export const UserModel = sequelize.define('user', {
     // The following specification of the 'id' attribute could be omitted
     // since it is the default.
     id: {
@@ -20,11 +20,8 @@ export const User = sequelize.define('user', {
             is: /^\w{3,}$/
         }
     },
-    hash_password: {
-        type: DataTypes.STRING(64),
-        validate: {
-            is: /^[0-9a-f]{64}$/i
-        },
+    hashedPassword: {
+        type: DataTypes.STRING,
         allowNull: false,
     },
 });

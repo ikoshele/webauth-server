@@ -1,13 +1,39 @@
-import {User} from "../models/user.model.js";
+import {UserModel} from "../models/user.model.js";
+import bcrypt from 'bcrypt'
+import jwt from "jsonwebtoken";
 
 export class UserService {
-    async register(user) {
-        let userRecord;
+    async register(userData) {
         try {
-            userRecord = await User.create({ username: "Jane", hash_password: "123" })
+            const hashedPassword = await bcrypt.hash(userData.password,10);
+            const userRecord = await UserModel.create({ username: userData.username, hashedPassword: hashedPassword });
+            if (userRecord) {
+                const  {id, username} = userRecord.dataValues
+                const token = this.generateToken(username)
+                return {id, username, token}
+            }
         } catch (e) {
-            console.log(e)
+            throw e
         }
-        return userRecord
+    }
+    async signIn(userData) {
+        const {username, password} = userData
+        const userRecord = await UserModel.findOne({where: { username }});
+        if (!userRecord) {
+            throw new Error('User not registered');
+        }
+        const isValidPassword = await bcrypt.compare(password, userRecord.hashedPassword);
+        if (isValidPassword) {
+            const token = this.generateToken(username)
+            return {id: userRecord.id, username: userRecord.username, token}
+        } else {
+            throw new Error('Incorrect password');
+        }
+    }
+    generateToken(username) {
+        const today = new Date();
+        const exp = new Date(today);
+        exp.setDate(today.getDate() + 60);
+        return jwt.sign({username}, process.env.TOKEN_SECRET, { expiresIn: '1800s' });
     }
 }
