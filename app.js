@@ -12,8 +12,8 @@ import webAuthService from "./services/WebAuthService.js";
 import {router as indexRoutes} from './routes/index.routes.js'
 import {router as signUpRoutes} from './routes/registration.routes.js'
 import {router as authRoutes} from './routes/auth.routes.js'
-import {errorHandler} from "./errorHandler.js";
-import {authenticateToken} from "./authToken.js";
+import {router as privateRoutes} from './routes/private.routes.js'
+import {errorHandler} from "./middlewares/errorHandler.js";
 
 app.use(express.json());
 app.use(cors());
@@ -23,6 +23,8 @@ const webAuthInstance = new webAuthService();
 app.use('/', indexRoutes);
 app.use('/', signUpRoutes);
 app.use('/', authRoutes);
+app.use('/', privateRoutes);
+
 
 app.get('/', (req, res) => {
     res.send('hello world')
@@ -53,9 +55,6 @@ app.post('/verify-authentication', async (req, res) => {
 });
 
 
-app.get('/api/userOrders', authenticateToken, (req, res) => {
-    res.send('success')
-})
 app.use(errorHandler)
 
 

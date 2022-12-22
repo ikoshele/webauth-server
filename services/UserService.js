@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 export class UserService {
     async register(userData) {
         try {
-            const hashedPassword = await bcrypt.hash(userData.password,10);
+            const hashedPassword = userData.password ? await bcrypt.hash(userData.password,10) : null;
             const userRecord = await UserModel.create({ username: userData.username, hashedPassword: hashedPassword });
             if (userRecord) {
                 const  {id, username} = userRecord.dataValues
