@@ -2,6 +2,7 @@ import express from 'express'
 import * as dotenv from 'dotenv'
 dotenv.config()
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
 const app = express();
 const port = 3000;
 
@@ -10,18 +11,18 @@ import './models/index.js'
 import {UserService} from "./services/UserService.js";
 import webAuthService from "./services/WebAuthService.js";
 import {router as indexRoutes} from './routes/index.routes.js'
-import {router as signUpRoutes} from './routes/registration.routes.js'
 import {router as authRoutes} from './routes/auth.routes.js'
-import {router as privateRoutes} from './routes/private.routes.js'
+import {router as privateRoutes} from './routes/profile.routes.js'
 import {errorHandler} from "./middlewares/errorHandler.js";
 
 app.use(express.json());
-app.use(cors());
+//app.use(cors());
+app.use(cors({credentials: true, origin: true}));
+app.use(cookieParser(process.env.COOKIES_SECRET))
 
 const webAuthInstance = new webAuthService();
 
 app.use('/', indexRoutes);
-app.use('/', signUpRoutes);
 app.use('/', authRoutes);
 app.use('/', privateRoutes);
 

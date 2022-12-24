@@ -6,11 +6,11 @@ export class UserService {
     async register(userData) {
         try {
             const hashedPassword = userData.password ? await bcrypt.hash(userData.password,10) : null;
-            const userRecord = await UserModel.create({ username: userData.username, hashedPassword: hashedPassword });
+            const userRecord = await UserModel.create({ username: userData.username, hashedPassword: hashedPassword, name: userData.name });
             if (userRecord) {
                 const  {id, username} = userRecord.dataValues
-                const token = this.generateToken(username)
-                return {id, username, token}
+                const {accessToken, refreshToken} = this.generateToken(id, username);
+                return {id, username, accessToken, refreshToken}
             }
         } catch (e) {
             throw e
@@ -20,20 +20,40 @@ export class UserService {
         const {username, password} = userData
         const userRecord = await UserModel.findOne({where: { username }});
         if (!userRecord) {
-            throw new Error('User not registered');
+            throw new Error('User not found');
         }
         const isValidPassword = await bcrypt.compare(password, userRecord.hashedPassword);
         if (isValidPassword) {
-            const token = this.generateToken(username)
-            return {id: userRecord.id, username: userRecord.username, token}
+            const {accessToken, refreshToken} = this.generateToken(userRecord.id, username);
+            return {id: userRecord.id, username: userRecord.username, accessToken, refreshToken}
         } else {
             throw new Error('Incorrect password');
         }
     }
-    generateToken(username) {
-        const today = new Date();
-        const exp = new Date(today);
-        exp.setDate(today.getDate() + 60);
-        return jwt.sign({username}, process.env.TOKEN_SECRET, { expiresIn: '1800s' });
+    generateToken(id, username) {
+        const accessToken = jwt.sign({id, username}, process.env.TOKEN_SECRET, { expiresIn: '1800s' });
+        const refreshToken = jwt.sign({id, username}, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '1d' });
+        return {
+            accessToken,
+            refreshToken
+        };
+    }
+
+    setRefreshTokenCookie(res, refreshToken) {
+        res.cookie('jwt', refreshToken, {
+            httpOnly: true,
+            sameSite: 'None', secure: true,
+            maxAge: 24 * 60 * 60 * 1000,
+            signed: true
+        });
+    }
+
+    async getUserData(userId) {
+        const userRecord = await UserModel.findOne({where: { id: userId }});
+        if (!userRecord) {
+            throw new Error('No user found');
+        }
+        const {id, username, name} = userRecord
+        return {id, username, name};
     }
 }

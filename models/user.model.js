@@ -20,6 +20,9 @@ export const UserModel = sequelize.define('user', {
             is: /^\w{3,}$/
         }
     },
+    name: {
+        type: DataTypes.STRING,
+    },
     hashedPassword: {
         type: DataTypes.STRING,
         allowNull: false,
