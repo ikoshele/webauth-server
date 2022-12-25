@@ -27,4 +27,18 @@ export const UserModel = sequelize.define('user', {
         type: DataTypes.STRING,
         allowNull: false,
     },
+    devices: {
+        type: DataTypes.JSON,
+        get() {
+            const rawValue = this.getDataValue('devices');
+            return  JSON.parse(rawValue)
+        },
+        set(value) {
+            this.setDataValue('devices', JSON.stringify(value));
+        },
+        defaultValue: JSON.stringify([])
+    },
+    challenge: {
+        type: DataTypes.STRING(43),
+    }
 });

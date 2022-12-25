@@ -5,8 +5,7 @@ import {authenticateToken} from "../middlewares/authToken.js";
 import {UserService} from "../services/UserService.js";
 
 /* GET home page. */
-router.get('/profile', authenticateToken,async (req, res, next) => {
-    console.log(req.user);
+router.get('/profile', authenticateToken,async (req, res, next) => {;
     const {id} = req.user;
     if (!id) res.sendStatus(401)
     const {getUserData} = new UserService()

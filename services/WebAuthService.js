@@ -4,6 +4,7 @@ import {
     verifyRegistrationResponse
 } from "@simplewebauthn/server";
 import base64url from "base64url";
+import {UserModel} from "../models/user.model.js";
 
 export default class webAuthService {
     constructor() {
@@ -11,75 +12,76 @@ export default class webAuthService {
         this.rpName = 'SimpleWebAuthn Example';
         this.rpID = 'localhost';
         this.origin = 'http://localhost:5173';
-        this.inMemoryUserDeviceDB = {
-            [this.loggedInUserId]: {
-                id: this.loggedInUserId,
-                username: `user@${this.rpID}`,
-                devices: [],
+    }
+
+    async getUserFromDb(userId) {
+        const userRecord = await UserModel.findOne({where: { id: userId }});
+        if (!userRecord) {
+            throw new Error('User not found');
+        }
+        return userRecord;
+    }
+
+    async updateUserChallenge(userRecord, challenge) {
+        const updatedUser = await userRecord.update({challenge: challenge})
+        if (!updatedUser) {
+            throw new Error('Challenge set failed');
+        }
+        return updatedUser;
+    }
+
+    async generateRegistrationOptions(userId) {
+        try {
+            const user = await this.getUserFromDb(userId);
+
+            const {
                 /**
-                 * A simple way of storing a user's current challenge being signed by registration or authentication.
-                 * It should be expired after `timeout` milliseconds (optional argument for `generate` methods,
-                 * defaults to 60000ms)
+                 * The username can be a human-readable name, email, etc... as it is intended only for display.
                  */
-                currentChallenge: undefined,
-            },
-        };
-    }
+                username,
+                devices,
+            } = user;
+            const options = generateRegistrationOptions({
+                rpName: this.rpName,
+                rpID: this.rpID,
+                userID: this.loggedInUserId,
+                userName: username,
+                // Don't prompt users for additional information about the authenticator
+                // (Recommended for smoother UX)
+                attestationType: 'none',
+                // Prevent users from re-registering existing authenticators
+                excludeCredentials: devices.map(dev => ({
+                    id: dev.credentialID,
+                    type: 'public-key',
+                    transports: dev.transports,
+                })),
+            });
 
-    getUserFromDb() {
-        return this.inMemoryUserDeviceDB[this.loggedInUserId]
-    }
-
-    generateRegistrationOptions() {
-        const user = this.getUserFromDb();
-
-        const {
             /**
-             * The username can be a human-readable name, email, etc... as it is intended only for display.
+             * The server needs to temporarily remember this value for verification, so don't lose it until
+             * after you verify an authenticator response.
              */
-            username,
-            devices,
-        } = user;
-        const options = generateRegistrationOptions({
-            rpName: this.rpName,
-            rpID: this.rpID,
-            userID: this.loggedInUserId,
-            userName: username,
-            // Don't prompt users for additional information about the authenticator
-            // (Recommended for smoother UX)
-            attestationType: 'none',
-            // Prevent users from re-registering existing authenticators
-            excludeCredentials: devices.map(dev => ({
-                id: dev.credentialID,
-                type: 'public-key',
-                transports: dev.transports,
-            })),
-        });
-
-        /**
-         * The server needs to temporarily remember this value for verification, so don't lose it until
-         * after you verify an authenticator response.
-         */
-        user.currentChallenge = options.challenge;
-        return options;
+            await this.updateUserChallenge(user, options.challenge);
+            return options;
+        } catch (e) {
+            throw e;
+        }
     }
 
-    async verifyRegistration(payload) {
-        const user = this.getUserFromDb();
-        const expectedChallenge = user.currentChallenge;
+    async verifyRegistration(payload, userId) {
+        let user;
         let verification;
         try {
+            user = await this.getUserFromDb(userId);
+            const expectedChallenge = user.challenge;
             verification = await verifyRegistrationResponse({
                 credential: payload,
                 expectedChallenge,
                 expectedOrigin: this.origin,
                 expectedRPID: this.rpID,
             });
-        } catch (error) {
-            console.error(error);
-            return {
-                error: error.message
-            };
+        } catch (e) {
+            throw e;
         }
 
         const {verified, registrationInfo} = verification;
@@ -99,7 +101,7 @@ export default class webAuthService {
                     counter,
                     transports: payload.transports,
                 };
-                user.devices.push(newDevice);
+                user.update({devices: [newDevice, ...user.devices]});
             }
         }
         return {
@@ -129,7 +131,6 @@ export default class webAuthService {
          * The server needs to temporarily remember this value for verification, so don't lose it until
          * after you verify an authenticator response.
          */
-        user.currentChallenge = options.challenge;
         return options;
     }
 
@@ -166,10 +167,7 @@ export default class webAuthService {
             };
             verification = await verifyAuthenticationResponse(opts);
         } catch (error) {
-            console.error(error);
-            return {
-                error: error.message
-            };
+            throw error ;
         }
 
         const {verified, authenticationInfo} = verification;
@@ -182,12 +180,12 @@ export default class webAuthService {
             verified
         }
     }
-    resultVerifyHandler(result, res) {
+    resultVerifyHandler(result) {
         if (result && !result.error) {
-            res.send(result)
+            return result
         }
         if (result.error) {
-            res.status(400).send({ error: result.error })
+            throw new Error(result.error)
         }
     }
 }
