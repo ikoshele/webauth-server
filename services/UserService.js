@@ -1,16 +1,21 @@
 import {UserModel} from "../models/user.model.js";
 import bcrypt from 'bcrypt'
 import jwt from "jsonwebtoken";
+import {generateToken, setRefreshTokenCookie} from "./TokenService.js";
 
 export class UserService {
+    constructor(res, req) {
+        this.res = res;
+    }
     async register(userData) {
         try {
             const hashedPassword = userData.password ? await bcrypt.hash(userData.password,10) : null;
             const userRecord = await UserModel.create({ username: userData.username, hashedPassword: hashedPassword, name: userData.name });
             if (userRecord) {
                 const  {id, username} = userRecord.dataValues
-                const {accessToken, refreshToken} = this.generateToken(id, username);
-                return {id, username, accessToken, refreshToken}
+                const {accessToken, refreshToken} = generateToken(id, username);
+                setRefreshTokenCookie(this.res, refreshToken);
+                return {id, username, accessToken}
             }
         } catch (e) {
             throw e
@@ -24,28 +29,12 @@ export class UserService {
         }
         const isValidPassword = await bcrypt.compare(password, userRecord.hashedPassword);
         if (isValidPassword) {
-            const {accessToken, refreshToken} = this.generateToken(userRecord.id, username);
-            return {id: userRecord.id, username: userRecord.username, accessToken, refreshToken}
+            const {accessToken, refreshToken} = generateToken(userRecord.id, username);
+            setRefreshTokenCookie(this.res, refreshToken)
+            return {id: userRecord.id, username: userRecord.username, accessToken}
         } else {
             throw new Error('Incorrect password');
         }
-    }
-    generateToken(id, username) {
-        const accessToken = jwt.sign({id, username}, process.env.TOKEN_SECRET, { expiresIn: '10s' });
-        const refreshToken = jwt.sign({id, username}, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '20s' });
-        return {
-            accessToken,
-            refreshToken
-        };
-    }
-
-    setRefreshTokenCookie(res, refreshToken) {
-        res.cookie('jwt', refreshToken, {
-            httpOnly: true,
-            sameSite: 'None', secure: true,
-            maxAge: 24 * 60 * 60 * 1000,
-            signed: true
-        });
     }
 
     async getUserData(userId) {

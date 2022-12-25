@@ -1,6 +1,7 @@
 import express from "express";
 import {UserService} from "../services/UserService.js";
 import jwt from "jsonwebtoken";
+import {generateToken} from "../services/TokenService.js";
 
 const router = express.Router();
 
@@ -12,9 +13,8 @@ router.get('/login', function (req, res, next) {
 router.post('/login', async (req, res, next) => {
     try {
         const {username, password} = req.body
-        const userInstance = new UserService();
-        const {refreshToken, ...user} = await userInstance.signIn({username, password});
-        userInstance.setRefreshTokenCookie(res, refreshToken);
+        const userInstance = new UserService(res);
+        const user = await userInstance.signIn({username, password});
         res.status(200).json(user)
     } catch (e) {
         next(e)
@@ -28,9 +28,8 @@ router.get('/signup', function(req, res, next) {
 router.post('/signup', async (req, res, next) => {
     try {
         const {username, password, name} = req.body
-        const userInstance = new UserService();
-        const {refreshToken, ...user} = await userInstance.register({username, password, name});
-        userInstance.setRefreshTokenCookie(res, refreshToken);
+        const userInstance = new UserService(res);
+        const user = await userInstance.register({username, password, name});
         res.status(201).json(user)
     } catch (e) {
         next(e)
@@ -44,7 +43,6 @@ router.post('/token-refresh', async (req, res, next) => {
             if (err) {
                 return res.sendStatus(403)
             }
-            const {generateToken} = new UserService();
             const {accessToken} = generateToken(user.id, user.username);
             res.status(200).json(accessToken)
         });

@@ -1,6 +1,4 @@
 import express from "express";
-import {UserService} from "../services/UserService.js";
-import jwt from "jsonwebtoken";
 import {authenticateToken} from "../middlewares/authToken.js";
 import webAuthService from "../services/WebAuthService.js";
 
@@ -30,19 +28,26 @@ router.post('/verify-registration',  authenticateToken, async (req, res, next) =
 
 });
 
-router.get('/generate-authentication-options', (req, res) => {
-    const webAuthInstance = new webAuthService();
-    const options = webAuthInstance.generateAuthenticationOptions();
-    res.send(options);
+router.get('/generate-authentication-options', (req, res, next) => {
+    //const {id} = req.user;
+    const webAuthInstance = new webAuthService(res);
+    try {
+        const options = webAuthInstance.generateAuthenticationOptions();
+        res.send(options);
+    } catch (e) {
+        next(e)
+    }
 });
 
-router.post('/verify-authentication', async (req, res) => {
-    const webAuthInstance = new webAuthService();
-    const body = req.body;
-    const result = await webAuthInstance.verifyAuthentication(body);
+router.post('/verify-authentication', async (req, res,next) => {
+    const webAuthInstance = new webAuthService(res, req);
+    try {
+        const userRecord = await webAuthInstance.verifyAuthentication();
+        res.json(userRecord)
+    } catch (e) {
+        next(e)
+    }
 
-    const verifiedRes = webAuthInstance.resultVerifyHandler(result)
-    res.send(verifiedRes)
 });
 
 export {router}

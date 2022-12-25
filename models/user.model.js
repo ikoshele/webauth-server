@@ -31,7 +31,12 @@ export const UserModel = sequelize.define('user', {
         type: DataTypes.JSON,
         get() {
             const rawValue = this.getDataValue('devices');
-            return  JSON.parse(rawValue)
+            const parsed = JSON.parse(rawValue);
+            parsed.forEach((device) => {
+                device.credentialPublicKey = Buffer.from(device.credentialPublicKey.data);
+                device.credentialID = Buffer.from(device.credentialID.data);
+            })
+            return  parsed;
         },
         set(value) {
             this.setDataValue('devices', JSON.stringify(value));
