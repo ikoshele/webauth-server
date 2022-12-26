@@ -1,11 +1,10 @@
 import { UserModel } from '../models/user.model.js';
 import bcrypt from 'bcrypt';
-import { generateToken, setRefreshTokenCookie } from './TokenService.js';
+import { setupTokens } from './TokenService.js';
 
 export class UserService {
     async register(userData, res) {
         const hashedPassword = userData.password ? await bcrypt.hash(userData.password, 10) : null;
-        console.log(hashedPassword);
         const userRecord = await UserModel.create({
             username: userData.username,
             hashedPassword: hashedPassword,
@@ -13,11 +12,12 @@ export class UserService {
         });
         if (userRecord) {
             const { id, username } = userRecord.dataValues;
-            const { accessToken, refreshToken } = generateToken(id, username);
-            setRefreshTokenCookie(res, refreshToken);
-            return { id,
+            const accessToken = await setupTokens(id, username, res);
+            return {
+                id,
                 username,
-                accessToken };
+                accessToken
+            };
         }
     }
 
@@ -29,11 +29,12 @@ export class UserService {
         }
         const isValidPassword = await bcrypt.compare(password, userRecord.hashedPassword);
         if (isValidPassword) {
-            const { accessToken, refreshToken } = generateToken(userRecord.id, username);
-            setRefreshTokenCookie(res, refreshToken);
-            return { id: userRecord.id,
+            const accessToken = await setupTokens(userRecord.id, username, res);
+            return {
+                id: userRecord.id,
                 username: userRecord.username,
-                accessToken };
+                accessToken
+            };
         } else {
             throw new Error('Incorrect password');
         }
@@ -45,8 +46,10 @@ export class UserService {
             throw new Error('No user found');
         }
         const { id, username, name } = userRecord;
-        return { id,
+        return {
+            id,
             username,
-            name };
+            name
+        };
     }
 }

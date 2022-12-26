@@ -14,11 +14,13 @@ router.post('/login', async (req, res, next) => {
     try {
         const { username, password } = req.body;
         const userInstance = new UserService();
-        const user = await userInstance.signIn({ username,
-            password }, res);
-        res.status(200).json(user);
+        const user = await userInstance.signIn({
+            username,
+            password
+        }, res);
+        return res.status(200).json(user);
     } catch (e) {
-        next(e);
+        return next(e);
     }
 });
 
@@ -30,12 +32,14 @@ router.post('/signup', async (req, res, next) => {
     try {
         const { username, password, name } = req.body;
         const userInstance = new UserService();
-        const user = await userInstance.register({ username,
+        const user = await userInstance.register({
+            username,
             password,
-            name }, res);
-        res.status(201).json(user);
+            name
+        }, res);
+        return res.status(201).json(user);
     } catch (e) {
-        next(e);
+        return next(e);
     }
 });
 
