@@ -5,7 +5,7 @@ import base64url from 'base64url';
 import { UserModel } from '../models/user.model.js';
 import { v4 as uuidv4 } from 'uuid';
 import cache from '../loaders/cache.js';
-import { generateToken, setRefreshTokenCookie } from './TokenService.js';
+import { generateToken, setRefreshTokenCookie, setupTokens } from './TokenService.js';
 
 export default class webAuthService {
     constructor() {
@@ -67,28 +67,27 @@ export default class webAuthService {
          * after you verify an authenticator response.
          */
         const sessionId = this.setSessionId(res);
-        cache.set(sessionId, { username,
+        cache.set(sessionId, {
+            username,
             devices,
-            challenge: options.challenge }, 1800);
+            challenge: options.challenge
+        }, 1800);
         return options;
     }
 
     async verifyRegistration(userId, req, res) {
-        let user = cache.get(req.signedCookies.sessionId);
-        cache.del(req.signedCookies.sessionId);
-        let verification;
+        let user = this.getCacheOnce(req.signedCookies.sessionId);
         let createdUser;
         const userRequest = req.body;
         const expectedChallenge = user.challenge;
-        verification = await verifyRegistrationResponse({
+
+        const { verified, registrationInfo } = await verifyRegistrationResponse({
             credential: userRequest,
             expectedChallenge,
             expectedOrigin: this.origin,
             expectedRPID: this.rpID,
             requireUserVerification: true
         });
-
-        const { verified, registrationInfo } = verification;
 
         if (verified && registrationInfo) {
             const { credentialPublicKey, credentialID, counter } = registrationInfo;
@@ -108,19 +107,23 @@ export default class webAuthService {
                 if (userId) {
                     await UserModel.update({ devices: [newDevice, ...user.devices] }, { where: { id: userId } });
                 } else {
-                    createdUser = await UserModel.create({ username: user.username,
-                        devices: [newDevice] });
+                    createdUser = await UserModel.create({
+                        username: user.username,
+                        devices: [newDevice]
+                    });
                 }
             }
         }
         this.resultVerifyHandler(verified);
         if (createdUser) {
             const { id, username } = createdUser;
-            const accessToken = this.createTokens(id, username, res);
-            return { id,
+            const accessToken = await setupTokens(id, username, res);
+            return {
+                id,
                 username,
                 accessToken,
-                verified };
+                verified
+            };
         }
         return {
             verified
@@ -150,9 +153,7 @@ export default class webAuthService {
         const requestBody = req.body;
         const userRecord = await this.getUserFromDb(requestBody.response.userHandle);
         const { id, username, devices } = userRecord;
-        const expectedChallenge = cache.get(req.signedCookies.sessionId);
-        cache.del(req.signedCookies.sessionId);
-
+        const expectedChallenge = this.getCacheOnce(req.signedCookies.sessionId);
 
         let dbAuthenticator;
         const bodyCredIDBuffer = base64url.toBuffer(requestBody.rawId);
@@ -165,7 +166,7 @@ export default class webAuthService {
         }
 
         if (!dbAuthenticator) {
-            throw new Error('Authenticator is not registered with this site')
+            throw new Error('Authenticator is not registered with this site');
         }
 
         const opts = {
@@ -176,9 +177,7 @@ export default class webAuthService {
             authenticator: dbAuthenticator,
             requireUserVerification: true,
         };
-        let verification = await verifyAuthenticationResponse(opts);
-
-        const { verified, authenticationInfo } = verification;
+        const { verified, authenticationInfo } = await verifyAuthenticationResponse(opts);
 
         if (verified) {
             // Update the authenticator's counter in the DB to the newest count in the authentication
@@ -186,10 +185,12 @@ export default class webAuthService {
             await userRecord.update({ devices: devices });
         }
         this.resultVerifyHandler(verified);
-        const accessToken = this.createTokens(id, username, res);
-        return { id,
+        const accessToken = await setupTokens(id, username, res);
+        return {
+            id,
             username,
-            accessToken };
+            accessToken
+        };
     }
 
     resultVerifyHandler(result) {
@@ -213,9 +214,9 @@ export default class webAuthService {
         return sessionId;
     }
 
-    createTokens(id, username, res) {
-        const { accessToken, refreshToken } = generateToken(id, username);
-        setRefreshTokenCookie(res, refreshToken);
-        return accessToken;
+    getCacheOnce(key) {
+        const val = cache.get(key);
+        cache.del(key);
+        return val;
     }
 }
