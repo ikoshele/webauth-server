@@ -1,5 +1,5 @@
-import {DataTypes} from "sequelize";
-import {sequelize} from "../loaders/database.js";
+import {DataTypes} from 'sequelize';
+import {sequelize} from '../loaders/database.js';
 
 export const UserModel = sequelize.define('user', {
     // The following specification of the 'id' attribute could be omitted
@@ -29,7 +29,7 @@ export const UserModel = sequelize.define('user', {
         validate: {
             allowNull(value) {
                 if (!value && (!this.devices || !this.devices.length)) {
-                    throw new Error("Password may be empty only if you use WebAuth");
+                    throw new Error('Password may be empty only if you use WebAuth');
                 }
             }
         }
@@ -42,7 +42,7 @@ export const UserModel = sequelize.define('user', {
             parsed.forEach((device) => {
                 device.credentialPublicKey = Buffer.from(device.credentialPublicKey.data);
                 device.credentialID = Buffer.from(device.credentialID.data);
-            })
+            });
             return  parsed;
         },
         set(value) {

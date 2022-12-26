@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint . --ext .js --fix --ignore-path .gitignore"
   },
   "type": "module",
   "author": "",
@@ -25,6 +26,7 @@
     "node-cache": "^5.1.2"
   },
   "devDependencies": {
-    "base64url": "^3.0.1"
+    "base64url": "^3.0.1",
+    "eslint": "^8.30.0"
   }
 }

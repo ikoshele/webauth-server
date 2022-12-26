@@ -1,15 +1,14 @@
 import {
     generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse
-} from "@simplewebauthn/server";
-import base64url from "base64url";
-import {UserModel} from "../models/user.model.js";
+} from '@simplewebauthn/server';
+import base64url from 'base64url';
+import {UserModel} from '../models/user.model.js';
 import {v4 as uuidv4} from 'uuid';
-import cache from "../loaders/cache.js";
-import {generateToken, setRefreshTokenCookie} from "./TokenService.js";
-import {where} from "sequelize";
+import cache from '../loaders/cache.js';
+import {generateToken, setRefreshTokenCookie} from './TokenService.js';
 
 export default class webAuthService {
-    constructor(res, req) {
+    constructor() {
         this.rpName = 'SimpleWebAuthn Example';
         this.rpID = 'localhost';
         this.origin = 'http://localhost:5173';
@@ -24,7 +23,7 @@ export default class webAuthService {
     }
 
     async updateUserChallenge(userRecord, challenge) {
-        const updatedUser = await userRecord.update({challenge: challenge})
+        const updatedUser = await userRecord.update({challenge: challenge});
         if (!updatedUser) {
             throw new Error('Challenge set failed');
         }
@@ -32,23 +31,23 @@ export default class webAuthService {
     }
 
     async generateRegistrationOptions(authUserName, reqUsername, res) {
-        if (!authUserName && !reqUsername) throw new Error('Please specify username')
+        if (!authUserName && !reqUsername) throw new Error('Please specify username');
         if (!authUserName && reqUsername) {
             const userRecord = await UserModel.findOne({where: {username: reqUsername}});
             if (userRecord) {
-                throw new Error('Select another username')
+                throw new Error('Select another username');
             }
         }
         const generatedUser = {
-            username: reqUsername, devices: []
-        }
+            username: reqUsername,
+            devices: []
+        };
         const user = authUserName ? await this.getUserFromDb(authUserName) : generatedUser;
 
         const {
             /**
              * The username can be a human-readable name, email, etc... as it is intended only for display.
              */
-            //id, username, devices,
             username, devices,
         } = user;
         const options = generateRegistrationOptions({
@@ -59,12 +58,15 @@ export default class webAuthService {
             // (Recommended for smoother UX)
             attestationType: 'none', // Prevent users from re-registering existing authenticators
             excludeCredentials: devices.map(dev => ({
-                id: dev.credentialID, type: 'public-key', transports: dev.transports,
+                id: dev.credentialID,
+                type: 'public-key',
+                transports: dev.transports,
             })),
             authenticatorSelection: {
                 // "Discoverable credentials" used to be called "resident keys". The
                 // old name persists in the options passed to `navigator.credentials.create()`.
-                residentKey: 'required', userVerification: 'preferred',
+                residentKey: 'required',
+                userVerification: 'preferred',
             },
         });
 
@@ -73,30 +75,26 @@ export default class webAuthService {
          * after you verify an authenticator response.
          */
         const sessionId = this.setSessionId(res);
-        //cache.set(sessionId, {id, username, devices, challenge: options.challenge}, 1800)
-        cache.set(sessionId, {username, devices, challenge: options.challenge}, 1800)
-        //await this.updateUserChallenge(user, options.challenge);
+        cache.set(sessionId, {username,
+            devices,
+            challenge: options.challenge}, 1800);
         return options;
     }
 
     async verifyRegistration(userId, req, res) {
         let user = cache.get(req.signedCookies.sessionId);
+        cache.del(req.signedCookies.sessionId);
         let verification;
         let createdUser;
         const userRequest = req.body;
-        try {
-            //user = userId ? await this.getUserFromDb(userId) : cache.get(this.req.signedCookies.sessionId);
-            const expectedChallenge = user.challenge;
-            verification = await verifyRegistrationResponse({
-                credential: userRequest,
-                expectedChallenge,
-                expectedOrigin: this.origin,
-                expectedRPID: this.rpID,
-                requireUserVerification: true
-            });
-        } catch (e) {
-            throw e;
-        }
+        const expectedChallenge = user.challenge;
+        verification = await verifyRegistrationResponse({
+            credential: userRequest,
+            expectedChallenge,
+            expectedOrigin: this.origin,
+            expectedRPID: this.rpID,
+            requireUserVerification: true
+        });
 
         const {verified, registrationInfo} = verification;
 
@@ -110,24 +108,27 @@ export default class webAuthService {
                  * Add the returned device to the user's list of devices
                  */
                 const newDevice = {
-                    credentialPublicKey, credentialID, counter, transports: userRequest.transports,
+                    credentialPublicKey,
+                    credentialID,
+                    counter,
+                    transports: userRequest.transports,
                 };
-                try {
-                    if (userId) {
-                        await UserModel.update({devices: [newDevice, ...user.devices]}, {where: {id: userId}});
-                    } else {
-                        createdUser = await UserModel.create({username: user.username, devices: [newDevice]})
-                    }
-                } catch (e) {
-                    throw e;
+                if (userId) {
+                    await UserModel.update({devices: [newDevice, ...user.devices]}, {where: {id: userId}});
+                } else {
+                    createdUser = await UserModel.create({username: user.username,
+                        devices: [newDevice]});
                 }
             }
         }
         this.resultVerifyHandler(verified);
         if (createdUser) {
-            const {id, username} = createdUser
+            const {id, username} = createdUser;
             const accessToken = this.createTokens(id, username, res);
-            return {id, username, accessToken, verified}
+            return {id,
+                username,
+                accessToken,
+                verified};
         }
         return {
             verified
@@ -135,9 +136,11 @@ export default class webAuthService {
     }
 
     generateAuthenticationOptions(res) {
-        //const user = this.getUserFromDb(userId);
         const opts = {
-            timeout: 60000, allowCredentials: undefined, userVerification: 'required', rpID: this.rpID,
+            timeout: 60000,
+            allowCredentials: undefined,
+            userVerification: 'required',
+            rpID: this.rpID,
         };
 
         const options = generateAuthenticationOptions(opts);
@@ -146,9 +149,8 @@ export default class webAuthService {
          * The server needs to temporarily remember this value for verification, so don't lose it until
          * after you verify an authenticator response.
          */
-            //await this.updateUserChallenge(user, options.challenge)
         const sessionId = this.setSessionId(res);
-        cache.set(sessionId, options.challenge, 1800) // Cache the challenge for 30 mins
+        cache.set(sessionId, options.challenge, 1800); // Cache the challenge for 30 mins
         return options;
     }
 
@@ -157,6 +159,7 @@ export default class webAuthService {
         const userRecord = await this.getUserFromDb(requestBody.response.userHandle);
         const {id, username, devices} = userRecord;
         const expectedChallenge = cache.get(req.signedCookies.sessionId);
+        cache.del(req.signedCookies.sessionId);
 
 
         let dbAuthenticator;
@@ -175,53 +178,53 @@ export default class webAuthService {
             };
         }
 
-        let verification;
-        try {
-            const opts = {
-                credential: requestBody,
-                expectedChallenge: `${expectedChallenge}`,
-                expectedOrigin: 'http://localhost:5173',
-                expectedRPID: this.rpID,
-                authenticator: dbAuthenticator,
-                requireUserVerification: true,
-            };
-            verification = await verifyAuthenticationResponse(opts);
-        } catch (error) {
-            throw error;
-        }
+        const opts = {
+            credential: requestBody,
+            expectedChallenge: `${expectedChallenge}`,
+            expectedOrigin: 'http://localhost:5173',
+            expectedRPID: this.rpID,
+            authenticator: dbAuthenticator,
+            requireUserVerification: true,
+        };
+        let verification = await verifyAuthenticationResponse(opts);
 
         const {verified, authenticationInfo} = verification;
 
         if (verified) {
             // Update the authenticator's counter in the DB to the newest count in the authentication
             dbAuthenticator.counter = authenticationInfo.newCounter;
-            await userRecord.update({devices: devices})
+            await userRecord.update({devices: devices});
         }
         this.resultVerifyHandler(verified);
         const accessToken = this.createTokens(id, username, res);
-        return {id, username, accessToken}
+        return {id,
+            username,
+            accessToken};
     }
 
     resultVerifyHandler(result) {
         if (result && !result.error) {
-            return result
+            return result;
         }
         if (result.error) {
-            throw new Error(result.error)
+            throw new Error(result.error);
         }
     }
 
     setSessionId(res) {
         const sessionId = uuidv4();
         res.cookie('sessionId', sessionId, {
-            httpOnly: true, sameSite: 'Lax', secure: false, maxAge: 60 * 60 * 1000, //1 hour
+            httpOnly: true,
+            sameSite: 'Lax',
+            secure: false,
+            maxAge: 60 * 60 * 1000, //1 hour
             signed: true
         });
         return sessionId;
     }
 
     createTokens(id, username, res) {
-        const {accessToken, refreshToken} = generateToken(id, username)
+        const {accessToken, refreshToken} = generateToken(id, username);
         setRefreshTokenCookie(res, refreshToken);
         return accessToken;
     }
