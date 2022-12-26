@@ -1,12 +1,11 @@
 import express from "express";
 import {voluntaryAuthenticateToken} from "../middlewares/authToken.js";
 import webAuthService from "../services/WebAuthService.js";
-import {UserModel} from "../models/user.model.js";
 
 const router = express.Router();
 router.post('/generate-registration-options', voluntaryAuthenticateToken, async (req, res, next) => {
     const webAuthInstance = new webAuthService();
-    const authUserName = req.user?.id;
+    const authUserName = req.user?.username;
     const {username: reqUsername} = req.body
     try {
         const options = await webAuthInstance.generateRegistrationOptions(authUserName, reqUsername, res);
