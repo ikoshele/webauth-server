@@ -32,6 +32,7 @@ export default class webAuthService {
     }
 
     async generateRegistrationOptions(authUserName, reqUsername, res) {
+        if (!authUserName && !reqUsername) throw new Error('Please specify username')
         if (!authUserName && reqUsername) {
             const userRecord = await UserModel.findOne({where: {username: reqUsername}});
             if (userRecord) {
@@ -153,7 +154,8 @@ export default class webAuthService {
 
     async verifyAuthentication(req, res) {
         const requestBody = req.body;
-        const {id, username, devices} = await this.getUserFromDb(requestBody.response.userHandle);
+        const userRecord = await this.getUserFromDb(requestBody.response.userHandle);
+        const {id, username, devices} = userRecord;
         const expectedChallenge = cache.get(req.signedCookies.sessionId);
 
 
@@ -193,6 +195,7 @@ export default class webAuthService {
         if (verified) {
             // Update the authenticator's counter in the DB to the newest count in the authentication
             dbAuthenticator.counter = authenticationInfo.newCounter;
+            await userRecord.update({devices: devices})
         }
         this.resultVerifyHandler(verified);
         const accessToken = this.createTokens(id, username, res);
@@ -211,7 +214,7 @@ export default class webAuthService {
     setSessionId(res) {
         const sessionId = uuidv4();
         res.cookie('sessionId', sessionId, {
-            httpOnly: true, sameSite: 'None', secure: true, maxAge: 60 * 60 * 1000, //1 hour
+            httpOnly: true, sameSite: 'Lax', secure: false, maxAge: 60 * 60 * 1000, //1 hour
             signed: true
         });
         return sessionId;

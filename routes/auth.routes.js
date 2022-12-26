@@ -13,8 +13,8 @@ router.get('/login', function (req, res, next) {
 router.post('/login', async (req, res, next) => {
     try {
         const {username, password} = req.body
-        const userInstance = new UserService(res);
-        const user = await userInstance.signIn({username, password});
+        const userInstance = new UserService();
+        const user = await userInstance.signIn({username, password}, res);
         res.status(200).json(user)
     } catch (e) {
         next(e)
@@ -28,8 +28,8 @@ router.get('/signup', function(req, res, next) {
 router.post('/signup', async (req, res, next) => {
     try {
         const {username, password, name} = req.body
-        const userInstance = new UserService(res);
-        const user = await userInstance.register({username, password, name});
+        const userInstance = new UserService();
+        const user = await userInstance.register({username, password, name}, res);
         res.status(201).json(user)
     } catch (e) {
         next(e)

@@ -14,7 +14,8 @@ export function generateToken(id, username) {
 export function setRefreshTokenCookie(res, refreshToken) {
     res.cookie('jwt', refreshToken, {
         httpOnly: true,
-        sameSite: 'None', secure: true,
+        sameSite: 'Lax',
+        secure: false,
         maxAge: 24 * 60 * 60 * 1000,
         signed: true
     });
