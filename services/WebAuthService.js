@@ -5,7 +5,6 @@ import base64url from 'base64url';
 import { UserModel } from '../models/user.model.js';
 import { v4 as uuidv4 } from 'uuid';
 import cache from '../loaders/cache.js';
-import { generateToken, setRefreshTokenCookie, setupTokens } from './TokenService.js';
 
 export default class webAuthService {
     constructor() {
@@ -75,7 +74,7 @@ export default class webAuthService {
         return options;
     }
 
-    async verifyRegistration(userId, req, res) {
+    async verifyRegistration(userId, req) {
         let user = this.getCacheOnce(req.signedCookies.sessionId);
         let createdUser;
         const userRequest = req.body;
@@ -115,18 +114,9 @@ export default class webAuthService {
             }
         }
         this.resultVerifyHandler(verified);
-        if (createdUser) {
-            const { id, username } = createdUser;
-            const accessToken = await setupTokens(id, username, res);
-            return {
-                id,
-                username,
-                accessToken,
-                verified
-            };
-        }
         return {
-            verified
+            verified,
+            createdUser
         };
     }
 
@@ -149,7 +139,7 @@ export default class webAuthService {
         return options;
     }
 
-    async verifyAuthentication(req, res) {
+    async verifyAuthentication(req) {
         const requestBody = req.body;
         const userRecord = await this.getUserFromDb(requestBody.response.userHandle);
         const { id, username, devices } = userRecord;
@@ -185,11 +175,9 @@ export default class webAuthService {
             await userRecord.update({ devices: devices });
         }
         this.resultVerifyHandler(verified);
-        const accessToken = await setupTokens(id, username, res);
         return {
             id,
-            username,
-            accessToken
+            username
         };
     }
 
