@@ -29,6 +29,18 @@ module.exports = {
         ],
         'object-property-newline': [
             'error',
+        ],
+        'object-curly-spacing': [
+            'error',
+            'always'
+        ],
+        'function-call-argument-newline': [
+            'error',
+            'never'
+        ],
+        'space-before-blocks': [
+            'error',
+            'always'
         ]
     }
 };

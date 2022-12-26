@@ -6,17 +6,17 @@ import cookieParser from 'cookie-parser';
 const app = express();
 const port = 3000;
 
-import {sequelize} from './loaders/database.js';
+import { sequelize } from './loaders/database.js';
 import './models/index.js';
-import {router as indexRoutes} from './routes/index.routes.js';
-import {router as authRoutes} from './routes/auth.routes.js';
-import {router as privateRoutes} from './routes/profile.routes.js';
-import {router as webAuthRoutes} from './routes/webauth.routes.js';
-import {errorHandler} from './middlewares/errorHandler.js';
+import { router as indexRoutes } from './routes/index.routes.js';
+import { router as authRoutes } from './routes/auth.routes.js';
+import { router as privateRoutes } from './routes/profile.routes.js';
+import { router as webAuthRoutes } from './routes/webauth.routes.js';
+import { errorHandler } from './middlewares/errorHandler.js';
 
 app.use(express.json());
-app.use(cors({credentials: true,
-    origin: true}));
+app.use(cors({ credentials: true,
+    origin: true }));
 app.use(cookieParser(process.env.COOKIES_SECRET));
 
 
@@ -40,7 +40,7 @@ const startApp = async () => {
     try {
         await sequelize.authenticate();
         console.log('Connection has been established successfully.');
-        await sequelize.sync({force: true});
+        await sequelize.sync({ force: true });
         app.listen(port, () => {
             console.log(`Example app listening on port ${port}`);
         });

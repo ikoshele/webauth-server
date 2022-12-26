@@ -1,7 +1,7 @@
 import express from 'express';
-import {UserService} from '../services/UserService.js';
+import { UserService } from '../services/UserService.js';
 import jwt from 'jsonwebtoken';
-import {generateToken} from '../services/TokenService.js';
+import { generateToken } from '../services/TokenService.js';
 
 const router = express.Router();
 
@@ -12,10 +12,10 @@ router.get('/login', function (req, res) {
 
 router.post('/login', async (req, res, next) => {
     try {
-        const {username, password} = req.body;
+        const { username, password } = req.body;
         const userInstance = new UserService();
-        const user = await userInstance.signIn({username,
-            password}, res);
+        const user = await userInstance.signIn({ username,
+            password }, res);
         res.status(200).json(user);
     } catch (e) {
         next(e);
@@ -28,11 +28,11 @@ router.get('/signup', function (req, res) {
 
 router.post('/signup', async (req, res, next) => {
     try {
-        const {username, password, name} = req.body;
+        const { username, password, name } = req.body;
         const userInstance = new UserService();
-        const user = await userInstance.register({username,
+        const user = await userInstance.register({ username,
             password,
-            name}, res);
+            name }, res);
         res.status(201).json(user);
     } catch (e) {
         next(e);
@@ -46,7 +46,7 @@ router.post('/token-refresh', async (req, res, next) => {
             if (err) {
                 return res.sendStatus(403);
             }
-            const {accessToken} = generateToken(user.id, user.username);
+            const { accessToken } = generateToken(user.id, user.username);
             res.status(200).json(accessToken);
         });
         next();
@@ -55,4 +55,4 @@ router.post('/token-refresh', async (req, res, next) => {
     }
 });
 
-export {router};
+export { router };

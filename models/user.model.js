@@ -1,5 +1,5 @@
-import {DataTypes} from 'sequelize';
-import {sequelize} from '../loaders/database.js';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../loaders/database.js';
 
 export const UserModel = sequelize.define('user', {
     // The following specification of the 'id' attribute could be omitted

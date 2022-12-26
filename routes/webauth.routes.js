@@ -1,12 +1,12 @@
 import express from 'express';
-import {voluntaryAuthenticateToken} from '../middlewares/authToken.js';
+import { voluntaryAuthenticateToken } from '../middlewares/authToken.js';
 import webAuthService from '../services/WebAuthService.js';
 
 const router = express.Router();
 router.post('/generate-registration-options', voluntaryAuthenticateToken, async (req, res, next) => {
     const webAuthInstance = new webAuthService();
     const authUserName = req.user?.username;
-    const {username: reqUsername} = req.body;
+    const { username: reqUsername } = req.body;
     try {
         const options = await webAuthInstance.generateRegistrationOptions(authUserName, reqUsername, res);
         res.json(options);
@@ -49,4 +49,4 @@ router.post('/verify-authentication', async (req, res, next) => {
 
 });
 
-export {router};
+export { router };
