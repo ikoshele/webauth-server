@@ -47,9 +47,8 @@ router.post('/token-refresh', async (req, res, next) => {
                 return res.sendStatus(403);
             }
             const { accessToken } = generateToken(user.id, user.username);
-            res.status(200).json(accessToken);
+            return res.status(200).json(accessToken);
         });
-        next();
     } catch (e) {
         next(e);
     }

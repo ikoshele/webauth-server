@@ -22,14 +22,6 @@ export default class webAuthService {
         return userRecord;
     }
 
-    async updateUserChallenge(userRecord, challenge) {
-        const updatedUser = await userRecord.update({ challenge: challenge });
-        if (!updatedUser) {
-            throw new Error('Challenge set failed');
-        }
-        return updatedUser;
-    }
-
     async generateRegistrationOptions(authUserName, reqUsername, res) {
         if (!authUserName && !reqUsername) throw new Error('Please specify username');
         if (!authUserName && reqUsername) {
@@ -173,9 +165,7 @@ export default class webAuthService {
         }
 
         if (!dbAuthenticator) {
-            return {
-                error: 'Authenticator is not registered with this site'
-            };
+            throw new Error('Authenticator is not registered with this site')
         }
 
         const opts = {
