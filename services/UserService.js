@@ -10,6 +10,7 @@ export class UserService {
     async register(userData) {
         try {
             const hashedPassword = userData.password ? await bcrypt.hash(userData.password,10) : null;
+            console.log(hashedPassword)
             const userRecord = await UserModel.create({ username: userData.username, hashedPassword: hashedPassword, name: userData.name });
             if (userRecord) {
                 const  {id, username} = userRecord.dataValues

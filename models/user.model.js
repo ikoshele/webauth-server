@@ -17,7 +17,7 @@ export const UserModel = sequelize.define('user', {
         validate: {
             // We require usernames to have length of at least 3, and
             // only use letters, numbers and underscores.
-            is: /^\w{3,}$/
+            is: /^\w{3,}$/,
         }
     },
     name: {
@@ -25,7 +25,14 @@ export const UserModel = sequelize.define('user', {
     },
     hashedPassword: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
+        validate: {
+            allowNull(value) {
+                if (!value && (!this.devices || !this.devices.length)) {
+                    throw new Error("Password may be empty only if you use WebAuth");
+                }
+            }
+        }
     },
     devices: {
         type: DataTypes.JSON,
