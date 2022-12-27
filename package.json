@@ -22,7 +22,8 @@
     "mysql2": "^2.3.3",
     "sequelize": "^6.28.0",
     "uuid": "^9.0.0",
-    "node-cache": "^5.1.2"
+    "node-cache": "^5.1.2",
+    "pg": "^8.8.0"
   },
   "devDependencies": {
     "base64url": "^3.0.1",

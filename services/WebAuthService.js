@@ -9,8 +9,8 @@ import cache from '../loaders/cache.js';
 export default class webAuthService {
     constructor() {
         this.rpName = 'SimpleWebAuthn Example';
-        this.rpID = 'localhost';
-        this.origin = 'http://localhost:5173';
+        this.rpID = process.env.FRONTEND_HOSTNAME;
+        this.origin = process.env.FRONTEND_ORIGIN;
     }
 
     async getUserFromDb(username) {
@@ -162,7 +162,7 @@ export default class webAuthService {
         const opts = {
             credential: requestBody,
             expectedChallenge: `${expectedChallenge}`,
-            expectedOrigin: 'http://localhost:5173',
+            expectedOrigin: this.origin,
             expectedRPID: this.rpID,
             authenticator: dbAuthenticator,
             requireUserVerification: true,

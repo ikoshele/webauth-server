@@ -15,8 +15,11 @@ import { router as webAuthRoutes } from './routes/webauth.routes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 app.use(express.json());
-app.use(cors({ credentials: true,
-    origin: true }));
+app.use(cors(
+    {
+        credentials: true,
+        origin: process.env.FRONTEND_ORIGIN
+    }));
 app.use(cookieParser(process.env.COOKIES_SECRET));
 
 
@@ -29,8 +32,6 @@ app.use('/', privateRoutes);
 app.get('/', (req, res) => {
     res.send('hello world');
 });
-
-
 
 
 app.use(errorHandler);
