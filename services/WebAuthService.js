@@ -5,6 +5,7 @@ import base64url from 'base64url';
 import { UserModel } from '../models/user.model.js';
 import { v4 as uuidv4 } from 'uuid';
 import cache from '../loaders/cache.js';
+import { ValidationError } from '../loaders/database.js';
 
 export default class webAuthService {
     constructor() {
@@ -22,11 +23,17 @@ export default class webAuthService {
     }
 
     async generateRegistrationOptions(authUserName, reqUsername, res) {
-        if (!authUserName && !reqUsername) throw new Error('Please specify username');
+        if (!authUserName && !reqUsername) {
+            const userInstance = UserModel.build({ username: reqUsername });
+            await userInstance.validate();
+        }
         if (!authUserName && reqUsername) {
             const userRecord = await UserModel.findOne({ where: { username: reqUsername } });
             if (userRecord) {
-                throw new Error('Select another username');
+                throw new ValidationError('Select another username', [{
+                    path: 'username',
+                    message: 'Select another username'
+                }]);
             }
         }
         const generatedUser = {
