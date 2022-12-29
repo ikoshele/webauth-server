@@ -28,7 +28,7 @@ export const UserModel = sequelize.define('user', {
         allowNull: true,
         validate: {
             allowNull(value) {
-                if (!value && (!this.devices)) {
+                if (!value && (!this.devices || !this.devices.length)) {
                     throw new Error('Password may be empty only if you use WebAuth');
                 }
             }
