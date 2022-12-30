@@ -28,7 +28,8 @@ router.post('/verify-registration', voluntaryAuthenticateToken, async (req, res,
                 verified: result.verified,
                 id,
                 username,
-                accessToken
+                accessToken,
+                credentialID: result.credentialID
             });
         }
         return res.json(result);

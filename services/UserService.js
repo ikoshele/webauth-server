@@ -45,11 +45,13 @@ export class UserService {
         if (!userRecord) {
             throw new Error('No user found');
         }
-        const { id, username, name } = userRecord;
+        const { id, username, name, devices } = userRecord;
+        const decodedDevices = devices.map((device) => device.credentialID = device.credentialID.toString('base64url'));
         return {
             id,
             username,
-            name
+            name,
+            decodedDevices
         };
     }
 }

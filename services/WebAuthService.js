@@ -123,7 +123,8 @@ export default class webAuthService {
         this.resultVerifyHandler(verified);
         return {
             verified,
-            createdUser
+            createdUser,
+            credentialID: registrationInfo.credentialID.toString('base64url')
         };
     }
 
